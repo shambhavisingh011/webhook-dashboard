@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GitHub Webhook Dashboard</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f4f6f8;
+      padding: 20px;
+    }
+
+    h2 {
+      text-align: center;
+      color: #333;
+    }
+
+    #events {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin-top: 30px;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .event-card {
+      background-color: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.07);
+      font-size: 16px;
+      color: #444;
+    }
+
+    .event-push {
+      border-left: 5px solid #3b82f6;
+    }
+
+    .event-pr {
+      border-left: 5px solid #10b981;
+    }
+  </style>
+</head>
+<body>
+  <h2>📦 GitHub Webhook Activity</h2>
+  <div id="events"></div>
+
+  <script>
+    function getOrdinal(n) {
+      const s = ["th", "st", "nd", "rd"];
+      const v = n % 100;
+      return n + (s[(v - 20) % 10] || s[v] || s[0]);
+    }
+
+    function formatDate(isoTime) {
+      const date = new Date(isoTime);
+      const day = getOrdinal(date.getUTCDate());
+      const monthNames = ["January", "February", "March", "April", "May", "June",
+                          "July", "August", "September", "October", "November", "December"];
+      const month = monthNames[date.getUTCMonth()];
+      const year = date.getUTCFullYear();
+      let hours = date.getUTCHours();
+      const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12 || 12;
+      return `${day} ${month} ${year} - ${hours}:${minutes} ${ampm} UTC`;
+    }
+
+    function loadEvents() {
+      fetch('/events')
+        .then(res => res.json())
+        .then(data => {
+          const container = document.getElementById('events');
+          container.innerHTML = '';
+
+          data.forEach(event => {
+            const time = formatDate(event.timestamp);
+            let message = '';
+            let typeClass = '';
+
+            if (event.action === 'push') {
+              message = `📤 "${event.author}" pushed to "${event.to_branch}" on ${time}`;
+              typeClass = 'event-push';
+            } else if (event.action === 'pull_request') {
+              message = `🔀 "${event.author}" submitted a pull request from "${event.from_branch}" to "${event.to_branch}" on ${time}`;
+              typeClass = 'event-pr';
+            }
+
+            const card = document.createElement('div');
+            card.className = `event-card ${typeClass}`;
+            card.textContent = message;
+            container.appendChild(card);
+          });
+        });
+    }
+
+    loadEvents();
+    setInterval(loadEvents, 15000);
+  </script>
+</body>
+</html>
